@@ -53,3 +53,18 @@ class Person(models.Model):
     is_programmer = models.BooleanField(null=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name}"
+
+
+class OutFit(models.Model):
+    upper_half = models.CharField(max_length=255, null=False)
+    lower_half = models.CharField(max_length=255, null=False)
+    footwear = models.CharField(max_length=255, default="Shoes")
+    specs = models.CharField(max_length=255, default="Sun Glasses")
+
+    person = models.ForeignKey(Person, null=True, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.upper_half} {self.lower_half}"

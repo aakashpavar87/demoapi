@@ -151,9 +151,10 @@ class Snippet_detail(generics.RetrieveUpdateDestroyAPIView):
         return self.update(request, *args, **kwargs, partial=True)
 
 
-class Person_list(
-    mixins.CreateModelMixin, mixins.ListModelMixin, generics.GenericAPIView
-):
+# class Person_list(
+#     mixins.CreateModelMixin, mixins.ListModelMixin, generics.GenericAPIView
+# ):
+class Person_list(generics.ListCreateAPIView):
     queryset = Person.objects.all()
     serializer_class = PersonSerializer
 
@@ -164,17 +165,18 @@ class Person_list(
         return self.create(request, *args, **kwargs)
 
 
-class Person_detail(
-    mixins.RetrieveModelMixin,
-    mixins.DestroyModelMixin,
-    mixins.UpdateModelMixin,
-    generics.GenericAPIView,
-):
+# class Person_detail(
+#     mixins.RetrieveModelMixin,
+#     mixins.DestroyModelMixin,
+#     mixins.UpdateModelMixin,
+#     generics.GenericAPIView,
+# ):
+class Person_detail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Person.objects.all()
     serializer_class = PersonSerializer
 
-    def get(self, request, *args, **kwargs):
-        return self.retrieve(request, *args, **kwargs)
+    # def get(self, request, *args, **kwargs):
+    #     return self.retrieve(request, *args, **kwargs)
 
     def patch(
         self,
@@ -184,8 +186,8 @@ class Person_detail(
     ):
         return self.update(request, *args, **kwargs, partial=True)
 
-    def delete(self, request, *args, **kwargs):
-        return self.destroy(request, *args, **kwargs)
+    # def delete(self, request, *args, **kwargs):
+    #     return self.destroy(request, *args, **kwargs)
 
 
 class UserList(generics.ListAPIView):

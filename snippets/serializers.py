@@ -1,7 +1,8 @@
 from django.contrib.auth.models import User
+from keyring.backends import null
 from rest_framework import serializers
 
-from snippets.models import LANGUAGE_CHOICES, STYLE_CHOICES, Person, Snippet
+from snippets.models import LANGUAGE_CHOICES, STYLE_CHOICES, OutFit, Person, Snippet
 
 
 class SnippetSerializer(serializers.HyperlinkedModelSerializer):
@@ -39,7 +40,15 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
         extra_kwargs = {"url": {"view_name": "snippets:user-detail"}}
 
 
+class OutFitSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OutFit
+        fields = ["id", "upper_half", "lower_half", "footwear", "specs"]
+
+
 class PersonSerializer(serializers.ModelSerializer):
+    outfits = OutFitSerializer(many=True, read_only=True, source="outfit_set")
+
     class Meta:
         model = Person
         fields = [
@@ -49,4 +58,12 @@ class PersonSerializer(serializers.ModelSerializer):
             "title",
             "is_married",
             "is_programmer",
+            "outfits",
         ]
+
+    def create(self, validated_data):
+        outfits_data = validated_data.pop("outfits", [])
+        person = Person.objects.create(**validated_data)
+        for outfit_data in outfits_data:
+            OutFit.objects.create(person=person, **outfit_data)
+        return person
