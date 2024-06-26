@@ -28,6 +28,17 @@ class SnippetSerializer(serializers.HyperlinkedModelSerializer):
         ]
 
 
+class UserSerializer(serializers.HyperlinkedModelSerializer):
+    snippets = serializers.HyperlinkedRelatedField(
+        many=True, view_name="snippets:snippet-detail", read_only=True
+    )
+
+    class Meta:
+        model = User
+        fields = ["url", "id", "username", "snippets"]
+        extra_kwargs = {"url": {"view_name": "snippets:user-detail"}}
+
+
 class PersonSerializer(serializers.ModelSerializer):
     class Meta:
         model = Person
@@ -39,14 +50,3 @@ class PersonSerializer(serializers.ModelSerializer):
             "is_married",
             "is_programmer",
         ]
-
-
-class UserSerializer(serializers.HyperlinkedModelSerializer):
-    snippets = serializers.HyperlinkedRelatedField(
-        many=True, view_name="snippets:snippet-detail", read_only=True
-    )
-
-    class Meta:
-        model = User
-        fields = ["url", "id", "username", "snippets"]
-        extra_kwargs = {"url": {"view_name": "snippets:user-detail"}}
