@@ -1,8 +1,13 @@
+import logging
+
 from django.contrib.auth.models import User
 from keyring.backends import null
 from rest_framework import serializers
 
 from snippets.models import LANGUAGE_CHOICES, STYLE_CHOICES, OutFit, Person, Snippet
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 class SnippetSerializer(serializers.HyperlinkedModelSerializer):
@@ -43,27 +48,57 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
 class OutFitSerializer(serializers.ModelSerializer):
     class Meta:
         model = OutFit
-        fields = ["id", "upper_half", "lower_half", "footwear", "specs"]
+        exclude = ["persons"]
 
 
 class PersonSerializer(serializers.ModelSerializer):
-    outfits = OutFitSerializer(many=True, read_only=True, source="outfit_set")
+    outfits = OutFitSerializer(many=True, source="outfit_set", required=False)
 
     class Meta:
         model = Person
-        fields = [
-            "id",
-            "first_name",
-            "last_name",
-            "title",
-            "is_married",
-            "is_programmer",
-            "outfits",
-        ]
+        exclude = ["created_at", "updated_at"]
 
     def create(self, validated_data):
-        outfits_data = validated_data.pop("outfits", [])
+        outfits_data = validated_data.pop("outfit_set", [])
         person = Person.objects.create(**validated_data)
         for outfit_data in outfits_data:
-            OutFit.objects.create(person=person, **outfit_data)
+            outfit = OutFit.objects.create(**outfit_data)
+            outfit.persons.add(person)
         return person
+
+    def update(self, instance, validated_data):
+        outfits_data = validated_data.pop("outfit_set", None)
+
+        # Update the person fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        # Update outfits if provided
+        if outfits_data is not None:
+            logger.info("In Outfit clearing area.")
+            instance.outfit_set.clear()
+            for outfit_data in outfits_data:
+                outfit = OutFit.objects.create(**outfit_data)
+                outfit.persons.add(instance)
+
+        return instance
+
+    def partial_update(self, instance, validated_data):
+        logger.info("In Partial Update Area.")
+        outfits_data = validated_data.pop("outfit_set", None)
+        print(outfits_data)
+
+        # Update the person fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        # Update outfits if provided
+        if outfits_data is not None:
+            instance.outfit_set.clear()
+            for outfit_data in outfits_data:
+                outfit = OutFit.objects.create(**outfit_data)
+                outfit.persons.add(instance)
+
+        return instance

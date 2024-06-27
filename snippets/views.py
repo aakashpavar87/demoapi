@@ -1,19 +1,26 @@
 import logging
 
 from django.contrib.auth.models import User
-from rest_framework import generics, mixins, renderers, status
+from rest_framework import generics, mixins, renderers, status, viewsets
 from rest_framework.decorators import api_view
 from rest_framework.parsers import JSONParser
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.views import APIView
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from snippets.models import Person, Snippet
+from snippets.models import OutFit, Person, Snippet
 from snippets.permissions import IsOwnerOrReadonly
-from snippets.serializers import PersonSerializer, SnippetSerializer, UserSerializer
+from snippets.serializers import (
+    OutFitSerializer,
+    PersonSerializer,
+    SnippetSerializer,
+    UserSerializer,
+)
 
 logger = logging.getLogger(__name__)
+
 # Create your views here.
 # class Snippet_list(APIView):
 #     def get(self, formate=None):
@@ -171,23 +178,53 @@ class Person_list(generics.ListCreateAPIView):
 #     mixins.UpdateModelMixin,
 #     generics.GenericAPIView,
 # ):
-class Person_detail(generics.RetrieveUpdateDestroyAPIView):
+# class Person_detail(generics.RetrieveUpdateDestroyAPIView):
+#     queryset = Person.objects.all()
+#     serializer_class = PersonSerializer
+
+#     # def get(self, request, *args, **kwargs):
+#     #     return self.retrieve(request, *args, **kwargs)
+
+#     def patch(
+#         self,
+#         request,
+#         *args,
+#         **kwargs,
+#     ):
+#         return self.update(request, *args, **kwargs, partial=True)
+
+# def delete(self, request, *args, **kwargs):
+#     return self.destroy(request, *args, **kwargs)
+
+
+class PersonViewSet(viewsets.ModelViewSet):
     queryset = Person.objects.all()
     serializer_class = PersonSerializer
 
-    # def get(self, request, *args, **kwargs):
-    #     return self.retrieve(request, *args, **kwargs)
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
-    def patch(
-        self,
-        request,
-        *args,
-        **kwargs,
-    ):
-        return self.update(request, *args, **kwargs, partial=True)
+    def partial_update(self, request, *args, **kwargs):
+        kwargs["partial"] = True
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
 
-    # def delete(self, request, *args, **kwargs):
-    #     return self.destroy(request, *args, **kwargs)
+        if getattr(instance, "_prefetched_objects_cache", None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
+
+
+class OutFitViewSet(viewsets.ModelViewSet):
+    queryset = OutFit.objects.all()
+    serializer_class = OutFitSerializer
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
 
 class UserList(generics.ListAPIView):

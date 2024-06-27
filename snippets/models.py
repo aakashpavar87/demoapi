@@ -64,7 +64,7 @@ class OutFit(models.Model):
     footwear = models.CharField(max_length=255, default="Shoes")
     specs = models.CharField(max_length=255, default="Sun Glasses")
 
-    person = models.ForeignKey(Person, null=True, on_delete=models.CASCADE)
+    persons = models.ManyToManyField(Person, related_name="outfit_set")
 
     def __str__(self):
         return f"{self.upper_half} {self.lower_half}"
