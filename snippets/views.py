@@ -21,6 +21,134 @@ from snippets.serializers import (
 
 logger = logging.getLogger(__name__)
 
+
+class Snippet_list(generics.ListCreateAPIView):
+    queryset = Snippet.objects.all()
+    serializer_class = SnippetSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadonly]
+
+    def perform_create(self, serializer):
+        if serializer.is_valid():
+            serializer.save(owner=self.request.user)
+            logger.info("Snippet created successfully.")
+        else:
+            logger.error(f"Snippet creation failed: {serializer.errors}")
+
+
+class Snippet_detail(generics.RetrieveUpdateDestroyAPIView):
+
+    queryset = Snippet.objects.all()
+    serializer_class = SnippetSerializer
+
+    permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadonly]
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs, partial=True)
+
+
+# class Person_list(
+#     mixins.CreateModelMixin, mixins.ListModelMixin, generics.GenericAPIView
+# ):
+class Person_list(generics.ListCreateAPIView):
+    queryset = Person.objects.all()
+    serializer_class = PersonSerializer
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
+
+class PersonViewSet(viewsets.ModelViewSet):
+    queryset = Person.objects.all()
+    serializer_class = PersonSerializer
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def partial_update(self, request, *args, **kwargs):
+        kwargs["partial"] = True
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        if getattr(instance, "_prefetched_objects_cache", None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
+
+
+class OutFitViewSet(viewsets.ModelViewSet):
+    queryset = OutFit.objects.all()
+    serializer_class = OutFitSerializer
+
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+
+class UserList(generics.ListAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+
+class UserDetail(generics.RetrieveAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+
+@api_view(["GET"])
+def api_root(request, format=None):
+    return Response(
+        {
+            "users": reverse("snippets:user-list", request=request, format=format),
+            "snippets": reverse(
+                "snippets:snippet-list", request=request, format=format
+            ),
+        }
+    )
+
+
+class SnippetHighlight(generics.GenericAPIView):
+    queryset = Snippet.objects.all()
+    renderer_classes = [renderers.StaticHTMLRenderer]
+
+    def get(self, request, *args, **kwargs):
+        snippet = self.get_object()
+        return Response(snippet.highlighted)
+
+
+# class Person_detail(
+#     mixins.RetrieveModelMixin,
+#     mixins.DestroyModelMixin,
+#     mixins.UpdateModelMixin,
+#     generics.GenericAPIView,
+# ):
+# class Person_detail(generics.RetrieveUpdateDestroyAPIView):
+#     queryset = Person.objects.all()
+#     serializer_class = PersonSerializer
+
+#     # def get(self, request, *args, **kwargs):
+#     #     return self.retrieve(request, *args, **kwargs)
+
+#     def patch(
+#         self,
+#         request,
+#         *args,
+#         **kwargs,
+#     ):
+#         return self.update(request, *args, **kwargs, partial=True)
+
+# def delete(self, request, *args, **kwargs):
+#     return self.destroy(request, *args, **kwargs)
+
+
 # Create your views here.
 # class Snippet_list(APIView):
 #     def get(self, formate=None):
@@ -129,130 +257,3 @@ logger = logging.getLogger(__name__)
 
 #     def delete(self, request, *args, **kwargs):
 #         return self.destroy(request, *args, **kwargs)
-
-
-class Snippet_list(generics.ListCreateAPIView):
-    queryset = Snippet.objects.all()
-    serializer_class = SnippetSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadonly]
-
-    def perform_create(self, serializer):
-        if serializer.is_valid():
-            serializer.save(owner=self.request.user)
-            logger.info("Snippet created successfully.")
-        else:
-            logger.error(f"Snippet creation failed: {serializer.errors}")
-
-
-class Snippet_detail(generics.RetrieveUpdateDestroyAPIView):
-
-    queryset = Snippet.objects.all()
-    serializer_class = SnippetSerializer
-
-    permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadonly]
-
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
-
-    def put(self, request, *args, **kwargs):
-        return self.update(request, *args, **kwargs, partial=True)
-
-
-# class Person_list(
-#     mixins.CreateModelMixin, mixins.ListModelMixin, generics.GenericAPIView
-# ):
-class Person_list(generics.ListCreateAPIView):
-    queryset = Person.objects.all()
-    serializer_class = PersonSerializer
-
-    def get(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
-
-    def post(self, request, *args, **kwargs):
-        return self.create(request, *args, **kwargs)
-
-
-# class Person_detail(
-#     mixins.RetrieveModelMixin,
-#     mixins.DestroyModelMixin,
-#     mixins.UpdateModelMixin,
-#     generics.GenericAPIView,
-# ):
-# class Person_detail(generics.RetrieveUpdateDestroyAPIView):
-#     queryset = Person.objects.all()
-#     serializer_class = PersonSerializer
-
-#     # def get(self, request, *args, **kwargs):
-#     #     return self.retrieve(request, *args, **kwargs)
-
-#     def patch(
-#         self,
-#         request,
-#         *args,
-#         **kwargs,
-#     ):
-#         return self.update(request, *args, **kwargs, partial=True)
-
-# def delete(self, request, *args, **kwargs):
-#     return self.destroy(request, *args, **kwargs)
-
-
-class PersonViewSet(viewsets.ModelViewSet):
-    queryset = Person.objects.all()
-    serializer_class = PersonSerializer
-
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticatedOrReadOnly]
-
-    def partial_update(self, request, *args, **kwargs):
-        kwargs["partial"] = True
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-
-        if getattr(instance, "_prefetched_objects_cache", None):
-            # If 'prefetch_related' has been applied to a queryset, we need to
-            # invalidate the prefetch cache on the instance.
-            instance._prefetched_objects_cache = {}
-
-        return Response(serializer.data)
-
-
-class OutFitViewSet(viewsets.ModelViewSet):
-    queryset = OutFit.objects.all()
-    serializer_class = OutFitSerializer
-
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticatedOrReadOnly]
-
-
-class UserList(generics.ListAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-
-
-class UserDetail(generics.RetrieveAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-
-
-@api_view(["GET"])
-def api_root(request, format=None):
-    return Response(
-        {
-            "users": reverse("snippets:user-list", request=request, format=format),
-            "snippets": reverse(
-                "snippets:snippet-list", request=request, format=format
-            ),
-        }
-    )
-
-
-class SnippetHighlight(generics.GenericAPIView):
-    queryset = Snippet.objects.all()
-    renderer_classes = [renderers.StaticHTMLRenderer]
-
-    def get(self, request, *args, **kwargs):
-        snippet = self.get_object()
-        return Response(snippet.highlighted)
