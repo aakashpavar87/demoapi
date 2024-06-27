@@ -12,7 +12,6 @@ router.register(r"persons", views.PersonViewSet)
 router.register(r"outfits", views.OutFitViewSet)
 
 urlpatterns = [
-    path("", views.api_root),
     path("snippets/", views.Snippet_list.as_view(), name="snippet-list"),
     path("snippets/<int:pk>/", views.Snippet_detail.as_view(), name="snippet-detail"),
     path(
